@@ -1,7 +1,7 @@
 PassengerEnabled On
-PassengerAppRoot /home/upsales24/aibog/public_html/wb
+PassengerAppRoot /home/u/upsales24/aibog/public_html/wb
 PassengerBaseURI /wb
-PassengerPython /home/upsales24/aibog/public_html/wb/venv/bin/python3
+PassengerPython /home/u/upsales24/aibog/public_html/wb/venv/bin/python3
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
