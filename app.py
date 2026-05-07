@@ -252,4 +252,4 @@ def api_seller_parse():
 
 if __name__ == "__main__":
     os.makedirs("static", exist_ok=True)
-    app.run(debug=True, port=5050)
+    app.run(debug=False, host="0.0.0.0", port=5050)
