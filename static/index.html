@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WB Parser — Парсер Wildberries</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wb: #CB11AB;
+    --wb-dark: #8C097A;
+    --bg: #0d0d0f;
+    --bg2: #131316;
+    --bg3: #1c1c21;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f2;
+    --muted: #888896;
+    --card-bg: #16161b;
+    --accent: #CB11AB;
+    --green: #2ECC71;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--wb);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text); }
+  .logo-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(203,17,171,0.15);
+    color: var(--wb);
+    border: 1px solid rgba(203,17,171,0.3);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  /* MAIN */
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg3);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 32px;
+    width: fit-content;
+  }
+  .tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* SEARCH BOX */
+  .search-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .input-wrap input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 14px 18px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-wrap input:focus { border-color: rgba(203,17,171,0.5); }
+  .input-wrap input::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    background: var(--wb);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 14px 28px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { background: var(--wb-dark); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: rgba(203,17,171,0.4); color: var(--wb); }
+
+  /* BULK TEXTAREA */
+  textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 14px 18px;
+    outline: none;
+    resize: vertical;
+    min-height: 120px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: rgba(203,17,171,0.5); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* STATUS */
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    min-height: 20px;
+  }
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(203,17,171,0.2);
+    border-top-color: var(--wb);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* GRID */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+  }
+  .card:hover {
+    border-color: rgba(203,17,171,0.35);
+    transform: translateY(-2px);
+  }
+
+  .card-img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: var(--bg3);
+    position: relative;
+    overflow: hidden;
+  }
+  .card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+  .card:hover .card-img img { transform: scale(1.04); }
+  .card-img .img-count {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .img-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: var(--muted);
+  }
+
+  .card-body { padding: 16px; }
+  .card-brand {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--wb);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .card-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-price {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .card-price-old {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: line-through;
+    margin-left: 4px;
+  }
+  .card-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .star { color: #F59E0B; font-size: 13px; }
+  .card-article {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 24px 28px 0;
+  }
+  .modal-close {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-content { padding: 24px 28px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  
+  .modal-gallery { display: flex; flex-direction: column; gap: 10px; }
+  .modal-main-img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: var(--bg3);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .modal-main-img img { width: 100%; height: 100%; object-fit: cover; }
+  .modal-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .thumb {
+    width: 60px;
+    height: 60px;
+    background: var(--bg3);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .thumb.active { border-color: var(--wb); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .modal-info { display: flex; flex-direction: column; gap: 16px; }
+  .modal-brand { font-size: 12px; font-weight: 600; color: var(--wb); text-transform: uppercase; letter-spacing: 0.5px; }
+  .modal-name { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.3; }
+  
+  .modal-price-block { display: flex; align-items: baseline; gap: 10px; }
+  .modal-price { font-family: 'Unbounded', sans-serif; font-size: 26px; font-weight: 900; color: var(--wb); }
+  .modal-price-old { font-size: 16px; color: var(--muted); text-decoration: line-through; }
+
+  .modal-stats { display: flex; gap: 20px; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-val { font-size: 16px; font-weight: 600; }
+  .stat-label { font-size: 11px; color: var(--muted); }
+
+  .modal-desc { }
+  .modal-desc-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .modal-desc-text { font-size: 14px; line-height: 1.6; color: #ccc; max-height: 150px; overflow-y: auto; }
+
+  .modal-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .link-btn {
+    background: var(--wb);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    transition: background 0.2s;
+    display: inline-block;
+  }
+  .link-btn:hover { background: var(--wb-dark); }
+  .link-btn.secondary {
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .link-btn.secondary:hover { border-color: rgba(203,17,171,0.4); }
+
+  /* EXPORT */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .result-count {
+    font-size: 13px;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .empty-sub { font-size: 14px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #333; }
+
+  @media (max-width: 700px) {
+    header { padding: 16px 20px; }
+    main { padding: 24px 16px 60px; }
+    .modal-content { grid-template-columns: 1fr; }
+    .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">WB<span>Parser</span></div>
+  <div class="logo-badge">v1.0</div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('search',{target:this})">🔍 Поиск</button>
+    <button class="tab" onclick="switchTab('article',{target:this})">🏷️ По артикулу</button>
+    <button class="tab" onclick="switchTab('bulk',{target:this})">📋 Массовый</button>
+    <button class="tab" onclick="switchTab('seller',{target:this})">🏪 Продавец</button>
+  </div>
+
+  <!-- ПОИСК -->
+  <div id="panel-search" class="panel active">
+    <div class="search-row">
+      <div class="input-wrap">
+        <input id="search-input" type="text" placeholder="Введите поисковый запрос — напр.: кроссовки Nike, крем для лица..." />
+      </div>
+      <button class="btn-primary" onclick="doSearch()">
+        <span>Найти</span>
+      </button>
+    </div>
+    <div class="status" id="search-status"></div>
+    <div class="toolbar" id="search-toolbar" style="display:none">
+      <div class="result-count" id="search-count"></div>
+      <button class="btn-secondary" onclick="exportJSON('search')">⬇ JSON</button>
+      <button class="btn-secondary" onclick="exportCSV('search')">⬇ CSV</button>
+    </div>
+    <div class="products-grid" id="search-results">
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🛍️</div>
+        <div class="empty-title">Начните поиск</div>
+        <div class="empty-sub">Введите запрос для парсинга товаров</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ПО АРТИКУЛУ -->
+  <div id="panel-article" class="panel">
+    <div class="search-row">
+      <div class="input-wrap">
+        <input id="article-input" type="number" placeholder="Артикул товара — напр.: 187433233" />
+      </div>
+      <button class="btn-primary" onclick="doArticle()">Получить</button>
+    </div>
+    <div class="status" id="article-status"></div>
+    <div class="products-grid" id="article-results">
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🏷️</div>
+        <div class="empty-title">Введите артикул</div>
+        <div class="empty-sub">Например: 187433233</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- МАССОВЫЙ -->
+  <div id="panel-bulk" class="panel">
+    <textarea id="bulk-input" placeholder="Вставьте артикулы через запятую, пробел или с новой строки:&#10;187433233&#10;156789012&#10;200000001"></textarea>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="btn-primary" onclick="doBulk()">🚀 Запарсить</button>
+      <button class="btn-secondary" onclick="document.getElementById('bulk-input').value=''">Очистить</button>
+    </div>
+    <div class="status" id="bulk-status"></div>
+    <div class="toolbar" id="bulk-toolbar" style="display:none">
+      <div class="result-count" id="bulk-count"></div>
+      <button class="btn-secondary" onclick="exportJSON('bulk')">⬇ JSON</button>
+      <button class="btn-secondary" onclick="exportCSV('bulk')">⬇ CSV</button>
+    </div>
+    <div class="products-grid" id="bulk-results"></div>
+  </div>
+  <!-- ПРОДАВЕЦ -->
+  <div id="panel-seller" class="panel">
+    <div class="search-row">
+      <div class="input-wrap">
+        <input id="seller-input" type="text" placeholder="Ссылка продавца — https://www.wildberries.ru/seller/1308335" />
+      </div>
+      <button class="btn-primary" id="seller-btn" onclick="doSellerCheck()">Проверить</button>
+    </div>
+
+    <!-- SELLER INFO CARD -->
+    <div id="seller-info-card" style="display:none; margin-bottom:24px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Продавец</div>
+          <div style="font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700" id="si-name">—</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px">ID: <span id="si-id">—</span> · Товаров: <span id="si-total">—</span></div>
+        </div>
+        <button class="btn-primary" id="parse-all-btn" onclick="doSellerParseAll()" style="display:none">
+          🚀 Парсить все товары
+        </button>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div id="seller-progress" style="display:none;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600" id="progress-label">Загрузка...</div>
+        <div style="display:flex;gap:10px">
+          <div style="font-size:13px;color:var(--muted)" id="progress-counter">0 товаров</div>
+          <button class="btn-secondary" onclick="stopSeller()" style="font-size:12px;padding:4px 12px">⏹ Стоп</button>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:99px;height:6px;overflow:hidden">
+        <div id="progress-bar" style="background:var(--wb);height:100%;width:0%;transition:width .4s ease;border-radius:99px"></div>
+      </div>
+    </div>
+
+    <div class="status" id="seller-status"></div>
+    <div class="toolbar" id="seller-toolbar" style="display:none">
+      <div class="result-count" id="seller-count"></div>
+      <button class="btn-secondary" onclick="exportJSON('seller')">⬇ JSON</button>
+      <button class="btn-secondary" onclick="exportCSV('seller')">⬇ CSV</button>
+    </div>
+    <div class="products-grid" id="seller-results">
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🏪</div>
+        <div class="empty-title">Вставьте ссылку на продавца</div>
+        <div class="empty-sub">Например: https://www.wildberries.ru/seller/1308335</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-header">
+      <div>
+        <div class="modal-brand" id="m-brand"></div>
+        <div class="modal-name" id="m-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-content">
+      <div class="modal-gallery">
+        <div class="modal-main-img"><img id="m-main-img" src="" alt="" onerror="this.parentElement.innerHTML='<div class=img-placeholder>🖼️</div>'"/></div>
+        <div class="modal-thumbs" id="m-thumbs"></div>
+      </div>
+      <div class="modal-info">
+        <div class="modal-price-block">
+          <div class="modal-price" id="m-price"></div>
+          <div class="modal-price-old" id="m-price-old"></div>
+        </div>
+        <div class="modal-stats" id="m-stats"></div>
+        <div class="modal-desc">
+          <div class="modal-desc-title">Описание</div>
+          <div class="modal-desc-text" id="m-desc">Загрузка описания...</div>
+        </div>
+        <div class="modal-links" id="m-links"></div>
+        <div style="font-size:12px;color:var(--muted)" id="m-article"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentData = { search: [], bulk: [], seller: [] };
+let productMap = {};
+let currentProduct = null;
+let currentImages = [];
+
+// ── TABS ──
+function switchTab(name, e) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  (e || event).target.classList.add('active');
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── RENDER CARD ──
+function renderCard(p) {
+  productMap[p.article] = p;
+  const img = p.images && p.images[0] ? p.images[0] : null;
+  const priceStr = p.sale_price ? `${p.sale_price.toLocaleString('ru')} ₽` : (p.price ? `${p.price.toLocaleString('ru')} ₽` : '—');
+  return `
+    <div class="card" onclick="openModal(${p.article})">
+      <div class="card-img">
+        ${img
+          ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=img-placeholder>🖼️</div>'">`
+          : `<div class="img-placeholder">🖼️</div>`}
+        ${p.images && p.images.length > 1 ? `<div class="img-count">📷 ${p.images.length}</div>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-brand">${escapeHtml(p.brand) || '—'}</div>
+        <div class="card-name">${escapeHtml(p.name) || '—'}</div>
+        <div class="card-meta">
+          <div>
+            <span class="card-price">${priceStr}</span>
+            ${p.price && p.sale_price && p.price !== p.sale_price ? `<span class="card-price-old">${p.price.toLocaleString('ru')} ₽</span>` : ''}
+          </div>
+          <div class="card-rating">
+            <span class="star">★</span> ${p.rating ? p.rating.toFixed(1) : '—'}
+          </div>
+        </div>
+        <div class="card-article">Арт: ${p.article}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderGrid(containerId, products) {
+  const el = document.getElementById(containerId);
+  if (!products.length) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">😕</div><div class="empty-title">Ничего не найдено</div></div>`;
+    return;
+  }
+  el.innerHTML = products.map(renderCard).join('');
+}
+
+function setStatus(id, msg, loading = false) {
+  const el = document.getElementById(id);
+  if (!msg) { el.innerHTML = ''; return; }
+  el.innerHTML = loading
+    ? `<div class="spinner"></div><span>${msg}</span>`
+    : `<span>${msg}</span>`;
+}
+
+// ── SEARCH ──
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  setStatus('search-status', `Поиск: «${q}»...`, true);
+  document.getElementById('search-toolbar').style.display = 'none';
+  try {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    currentData.search = data.products;
+    renderGrid('search-results', data.products);
+    setStatus('search-status', `Найдено ${data.count} товаров`);
+    document.getElementById('search-count').textContent = `${data.count} товаров`;
+    document.getElementById('search-toolbar').style.display = data.count ? 'flex' : 'none';
+  } catch (e) {
+    setStatus('search-status', '❌ ' + e.message);
+  }
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => e.key === 'Enter' && doSearch());
+
+// ── ARTICLE ──
+async function doArticle() {
+  const art = document.getElementById('article-input').value.trim();
+  if (!art) return;
+  setStatus('article-status', `Загружаем артикул ${art}...`, true);
+  try {
+    const r = await fetch(`/api/article/${art}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    renderGrid('article-results', [data]);
+    setStatus('article-status', 'Готово');
+  } catch (e) {
+    setStatus('article-status', '❌ ' + e.message);
+    document.getElementById('article-results').innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🚫</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+document.getElementById('article-input').addEventListener('keydown', e => e.key === 'Enter' && doArticle());
+
+// ── BULK ──
+async function doBulk() {
+  const raw = document.getElementById('bulk-input').value;
+  const articles = raw.split(/[\s,;]+/).map(s => s.trim()).filter(s => /^\d+$/.test(s));
+  if (!articles.length) { setStatus('bulk-status', '❌ Не найдено артикулов'); return; }
+  setStatus('bulk-status', `Парсим ${articles.length} артикулов...`, true);
+  document.getElementById('bulk-toolbar').style.display = 'none';
+  try {
+    const r = await fetch('/api/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articles })
+    });
+    const data = await r.json();
+    currentData.bulk = data.results;
+    renderGrid('bulk-results', data.results);
+    const errCount = data.errors.length;
+    setStatus('bulk-status', `✅ Спарсено: ${data.results.length}${errCount ? ` | ❌ Ошибок: ${errCount}` : ''}`);
+    document.getElementById('bulk-count').textContent = `${data.results.length} товаров`;
+    document.getElementById('bulk-toolbar').style.display = data.results.length ? 'flex' : 'none';
+  } catch (e) {
+    setStatus('bulk-status', '❌ ' + e.message);
+  }
+}
+
+// ── MODAL ──
+function openModal(articleOrObj) {
+  const p = typeof articleOrObj === 'object' ? articleOrObj : productMap[articleOrObj];
+  if (!p) return;
+  currentProduct = p;
+  currentImages = p.images || [];
+  
+  document.getElementById('m-brand').textContent = p.brand || '';
+  document.getElementById('m-name').textContent = p.name || '';
+  
+  const price = p.sale_price || p.price;
+  document.getElementById('m-price').textContent = price ? `${price.toLocaleString('ru')} ₽` : '—';
+  document.getElementById('m-price-old').textContent = (p.price && p.sale_price && p.price !== p.sale_price) ? `${p.price.toLocaleString('ru')} ₽` : '';
+  
+  document.getElementById('m-stats').innerHTML = `
+    <div class="stat"><div class="stat-val">★ ${p.rating ? p.rating.toFixed(1) : '—'}</div><div class="stat-label">Рейтинг</div></div>
+    <div class="stat"><div class="stat-val">${p.feedbacks ? p.feedbacks.toLocaleString('ru') : '—'}</div><div class="stat-label">Отзывов</div></div>
+    <div class="stat"><div class="stat-val">${p.subject || '—'}</div><div class="stat-label">Категория</div></div>
+  `;
+  
+  document.getElementById('m-desc').textContent = p.description || 'Описание отсутствует';
+  document.getElementById('m-article').textContent = `Артикул: ${p.article}`;
+  
+  // Images
+  if (currentImages.length) {
+    setMainImage(currentImages[0]);
+    document.getElementById('m-thumbs').innerHTML = currentImages.map((url, i) =>
+      `<div class="thumb ${i===0?'active':''}" onclick="setThumb(${i})">
+        <img src="${url}" loading="lazy" onerror="this.parentElement.style.display='none'">
+      </div>`
+    ).join('');
+  } else {
+    document.getElementById('m-main-img').innerHTML = '<div class="img-placeholder">🖼️</div>';
+    document.getElementById('m-thumbs').innerHTML = '';
+  }
+  
+  document.getElementById('m-links').innerHTML = `
+    <a href="${p.url}" target="_blank" class="link-btn">Открыть на WB ↗</a>
+    <button class="link-btn secondary" onclick="copyJSON(event)">Копировать JSON</button>
+  `;
+  
+  document.getElementById('modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function setMainImage(url) {
+  const img = document.getElementById('m-main-img');
+  img.innerHTML = `<img src="${url}" alt="" onerror="this.parentElement.innerHTML='<div class=img-placeholder>🖼️</div>'">`;
+}
+
+function setThumb(i) {
+  document.querySelectorAll('.thumb').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  setMainImage(currentImages[i]);
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function copyJSON(e) {
+  navigator.clipboard.writeText(JSON.stringify(currentProduct, null, 2));
+  e.target.textContent = '✅ Скопировано!';
+  setTimeout(() => e.target.textContent = 'Копировать JSON', 1500);
+}
+
+// ── EXPORT ──
+function exportJSON(source) {
+  const data = currentData[source];
+  if (!data || !data.length) return;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wb_products_${Date.now()}.json`;
+  a.click();
+}
+
+function exportCSV(source) {
+  const data = currentData[source];
+  if (!data || !data.length) return;
+  const cols = ['article', 'brand', 'name', 'subject', 'price', 'sale_price', 'rating', 'feedbacks', 'url', 'description'];
+  const header = cols.join(';');
+  const rows = data.map(p => cols.map(c => {
+    const v = p[c] ?? '';
+    return `"${String(v).replace(/"/g, '""')}"`;
+  }).join(';'));
+  const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM for Excel
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wb_products_${Date.now()}.csv`;
+  a.click();
+}
+
+// ── SELLER ──
+let sellerSSE = null;
+let currentSellerId = null;
+
+document.getElementById('seller-input').addEventListener('keydown', e => e.key === 'Enter' && doSellerCheck());
+
+async function doSellerCheck() {
+  const url = document.getElementById('seller-input').value.trim();
+  if (!url) return;
+
+  setStatus('seller-status', 'Проверяем продавца...', true);
+  document.getElementById('seller-info-card').style.display = 'none';
+  document.getElementById('seller-toolbar').style.display = 'none';
+  document.getElementById('seller-progress').style.display = 'none';
+
+  try {
+    const r = await fetch(`/api/seller/info?url=${encodeURIComponent(url)}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+
+    currentSellerId = data.seller_id;
+    document.getElementById('si-name').textContent = data.seller_name || `Продавец #${data.seller_id}`;
+    document.getElementById('si-id').textContent = data.seller_id;
+    document.getElementById('si-total').textContent = data.total_approx ? `~${data.total_approx.toLocaleString('ru')}` : '?';
+    document.getElementById('seller-info-card').style.display = 'block';
+    document.getElementById('parse-all-btn').style.display = 'flex';
+
+    // Показываем превью товаров
+    currentData.seller = data.preview || [];
+    renderGrid('seller-results', currentData.seller);
+    setStatus('seller-status', `✅ Найден продавец. Показан превью — нажми «Парсить все товары»`);
+  } catch (e) {
+    setStatus('seller-status', '❌ ' + e.message);
+    document.getElementById('seller-results').innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🚫</div>
+        <div class="empty-title">${e.message}</div>
+      </div>`;
+  }
+}
+
+function doSellerParseAll() {
+  const url = document.getElementById('seller-input').value.trim();
+  if (!url) return;
+
+  // Сброс
+  if (sellerSSE) sellerSSE.close();
+  currentData.seller = [];
+  document.getElementById('seller-results').innerHTML = '';
+  document.getElementById('seller-progress').style.display = 'block';
+  document.getElementById('seller-toolbar').style.display = 'none';
+  document.getElementById('parse-all-btn').style.display = 'none';
+  setStatus('seller-status', '');
+
+  let totalLoaded = 0;
+  let knownTotal = null;
+
+  sellerSSE = new EventSource(`/api/seller/parse?url=${encodeURIComponent(url)}`);
+
+  sellerSSE.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'progress') {
+      totalLoaded = msg.loaded;
+      knownTotal = typeof msg.total === 'number' ? msg.total : knownTotal;
+      document.getElementById('progress-label').textContent = `Страница ${msg.page} — загружено ${msg.loaded.toLocaleString('ru')} товаров`;
+      document.getElementById('progress-counter').textContent = `${msg.loaded.toLocaleString('ru')} шт.`;
+      if (knownTotal && knownTotal > 0) {
+        const pct = Math.min(100, Math.round((msg.loaded / knownTotal) * 100));
+        document.getElementById('progress-bar').style.width = pct + '%';
+      } else {
+        // Анимированный пульс если total неизвестен
+        document.getElementById('progress-bar').style.width = '30%';
+      }
+    }
+
+    if (msg.type === 'products') {
+      currentData.seller.push(...msg.products);
+      // Добавляем карточки в грид
+      const grid = document.getElementById('seller-results');
+      const frag = document.createElement('div');
+      frag.innerHTML = msg.products.map(renderCard).join('');
+      while (frag.firstChild) grid.appendChild(frag.firstChild);
+      // Обновляем тулбар
+      document.getElementById('seller-count').textContent = `${currentData.seller.length} товаров`;
+      document.getElementById('seller-toolbar').style.display = 'flex';
+    }
+
+    if (msg.type === 'done') {
+      sellerSSE.close();
+      sellerSSE = null;
+      document.getElementById('progress-bar').style.width = '100%';
+      document.getElementById('progress-label').textContent = `✅ Готово!`;
+      document.getElementById('seller-count').textContent = `${msg.total.toLocaleString('ru')} товаров`;
+      setStatus('seller-status', `✅ Спарсено ${msg.total.toLocaleString('ru')} товаров`);
+      document.getElementById('parse-all-btn').style.display = 'flex';
+      document.getElementById('parse-all-btn').textContent = '🔄 Обновить';
+      setTimeout(() => document.getElementById('seller-progress').style.display = 'none', 3000);
+    }
+
+    if (msg.type === 'error') {
+      sellerSSE.close();
+      sellerSSE = null;
+      setStatus('seller-status', '❌ ' + msg.message);
+      document.getElementById('seller-progress').style.display = 'none';
+    }
+  };
+
+  sellerSSE.onerror = () => {
+    if (sellerSSE) sellerSSE.close();
+    sellerSSE = null;
+    if (currentData.seller.length) {
+      setStatus('seller-status', `Соединение прервано. Спарсено: ${currentData.seller.length} товаров`);
+    } else {
+      setStatus('seller-status', '❌ Ошибка соединения');
+    }
+    document.getElementById('seller-progress').style.display = 'none';
+  };
+}
+
+function stopSeller() {
+  if (sellerSSE) {
+    sellerSSE.close();
+    sellerSSE = null;
+  }
+  document.getElementById('seller-progress').style.display = 'none';
+  setStatus('seller-status', `⏹ Остановлено. Загружено: ${currentData.seller.length} товаров`);
+  document.getElementById('parse-all-btn').style.display = 'flex';
+}
+
+document.addEventListener('keydown', e => e.key === 'Escape' && closeModalDirect());
+</script>
+</body>
+</html>
