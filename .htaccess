@@ -1,7 +1,7 @@
 PassengerEnabled On
-PassengerAppRoot /home/YOUR_LOGIN/wb_parser
+PassengerAppRoot /home/upsales24/wb.bogatushin.ru/public_html
 PassengerBaseURI /
-PassengerPython /home/YOUR_LOGIN/.local/share/virtualenvs/wb_parser/bin/python
+PassengerPython /home/upsales24/wb.bogatushin.ru/public_html/venv/bin/python3
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
